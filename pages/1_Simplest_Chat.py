@@ -13,9 +13,10 @@ st.set_page_config(
 
 st.title("Simplest Chat")
 
-"""
-- Every chat are independent i.e. we don't pass the chat history to ChatGPT
-"""
+
+with st.expander("Settings"):
+    do_streaming = st.checkbox("Streaming output", True)
+    show_metadata = st.checkbox("Show metadata", True)
 
 with st.sidebar:
     openai_selection = st.selectbox("OpenAI Version", ["OpenAI", "Azure OpenAI"])
@@ -57,13 +58,35 @@ with st.sidebar:
             type="default",
         )
 
+    st.divider()
+
+    st.session_state.model = st.text_input(
+        "Model Name",
+        value=st.session_state.get("model", "gpt-3.5-turbo"),
+        type="default",
+    )
+    st.session_state.temperature = st.number_input(
+        "Temperature",
+        min_value=0.0,
+        max_value=2.0,
+        step=0.1,
+        value=st.session_state.get("temperature", 0.0),
+    )
+
+
 if "simplest_chat_messages" not in st.session_state:
     st.session_state["simplest_chat_messages"] = [
-        {"role": "assistant", "content": "How can I help you?"}
+        {"role": "assistant", "content": "How can I help you?", "metadata": {}}
     ]
 
+# Render history messages
 for msg in st.session_state.simplest_chat_messages:
     st.chat_message(msg["role"]).write(msg["content"])
+    if show_metadata:
+        metadata = msg["metadata"]
+        if "finish_reason" in metadata:
+            st.caption(f"Finish reason: {metadata['finish_reason']}")
+
 
 # https://streamlit.io/generative-ai
 # TODO: make response streaming https://docs.streamlit.io/knowledge-base/tutorials/build-conversational-apps#build-a-simple-chatbot-gui-with-streaming
@@ -87,13 +110,58 @@ if prompt := st.chat_input():
             api_version=st.session_state.azure_openai_version,
         )
 
-    st.session_state.simplest_chat_messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo", messages=st.session_state.simplest_chat_messages
-    )
-    msg = response.choices[0].message
     st.session_state.simplest_chat_messages.append(
-        {"role": "assistant", "content": msg.content}
+        {"role": "user", "content": prompt, "metadata": {}}
     )
-    st.chat_message("assistant").write(msg.content)
+    st.chat_message("user").write(prompt)
+
+    if not do_streaming:
+        response = client.chat.completions.create(
+            model=st.session_state.model,
+            # Chat history
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.simplest_chat_messages
+            ],
+            temperature=st.session_state.temperature,
+            stream=False,
+        )
+        msg = response.choices[0].message
+        st.session_state.simplest_chat_messages.append(
+            {"role": "assistant", "content": msg.content, "metadata": {}}
+        )
+        st.chat_message("assistant").write(msg.content)
+    else:
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            for response in client.chat.completions.create(
+                model=st.session_state.model,
+                # NOTE: this can prevent from additional messages
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.simplest_chat_messages
+                ],
+                temperature=st.session_state.temperature,
+                stream=True,
+            ):
+                full_response += (
+                    # NOTE: response.choices[0].delta.content can be None (at the finish line)
+                    response.choices[0].delta.content or ""
+                    if response.choices
+                    else ""
+                )
+                message_placeholder.markdown(full_response + "▌")
+
+            message_placeholder.markdown(full_response)
+        st.session_state.simplest_chat_messages.append(
+            {
+                "role": "assistant",
+                "content": full_response,
+                "metadata": {"finish_reason": response.choices[0].finish_reason},
+            }
+        )
+        if show_metadata:
+            st.caption(
+                f"Finish reason: {st.session_state.simplest_chat_messages[-1]['metadata']['finish_reason']}"
+            )

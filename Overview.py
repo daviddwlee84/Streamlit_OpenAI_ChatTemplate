@@ -66,7 +66,7 @@ with st.sidebar:
 
 st.markdown(
     """
-    - Github Page: [daviddwlee84/Streamlit_OpenAI_ChatTemplate: Simple chat App template using Streamlit Chat component with OpenAI Key. Which is useful as a starter template to build a chat app.](https://github.com/daviddwlee84/Streamlit_OpenAI_ChatTemplate)
+    - GitHub Page: [daviddwlee84/Streamlit_OpenAI_ChatTemplate](https://github.com/daviddwlee84/Streamlit_OpenAI_ChatTemplate)
     - Personal Website: [David Lee](https://dwlee-personal-website.netlify.app/)
 """
 )

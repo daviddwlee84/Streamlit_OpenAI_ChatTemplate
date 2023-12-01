@@ -19,6 +19,25 @@ cp example.env .env
 streamlit run Overview.py
 ```
 
+## Todo
+
+Functionality
+
+- [X] Streaming user experience
+  - [X] Option of streaming or not
+- [ ] Option of print cost estimation (and other metadata)
+- [ ] Language model parameters
+  - [X] Model name
+  - [X] Temperature
+  - [ ] TopN
+  - [ ] ...
+
+Demonstration
+
+- [ ] Chat with memory (different memory methods)
+- [ ] Chain-of-thought and intermediate result visualization
+- [ ] Agents selection
+
 ## Resources
 
 ### Streamlit
@@ -39,3 +58,7 @@ Deploy to Streamlit Community Cloud
 - [Configuration - Streamlit Docs](https://docs.streamlit.io/library/advanced-features/configuration)
 - [Secrets management - Streamlit Docs](https://docs.streamlit.io/streamlit-community-cloud/deploy-your-app/secrets-management)
   - Copy `.env` settings to the Streamlit App Settings > Secrets
+
+### OpenAI
+
+- [openai-cookbook/examples/How_to_stream_completions.ipynb at main · openai/openai-cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb)
