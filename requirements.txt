@@ -1,0 +1,10 @@
+# UI
+streamlit
+
+# API Key
+python-dotenv
+
+# LLM
+openai
+langchain
+langchain-experimental
