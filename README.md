@@ -32,11 +32,16 @@ Functionality
   - [ ] TopN
   - [ ] ...
 - [ ] Download or preserve/resume chat history
+  - [X] Download history: [st.download_button - Streamlit Docs](https://docs.streamlit.io/library/api-reference/widgets/st.download_button)
 - [ ] Clear chat history for fresh new round
 - [X] Error handling
 
 Demonstration
 
+- [ ] Basic usage
+  - [ ] Able to set system prompt instead of "How can I help you?"
+    - [LouisShark/chatgpt_system_prompt: store all agent's system prompt](https://github.com/LouisShark/chatgpt_system_prompt)
+    - [linexjlin/GPTs: leaked prompts of GPTs](https://github.com/linexjlin/GPTs)
 - [ ] Chat with memory (different memory methods)
 - [ ] Chain-of-thought and intermediate result visualization
 - [ ] Agents selection

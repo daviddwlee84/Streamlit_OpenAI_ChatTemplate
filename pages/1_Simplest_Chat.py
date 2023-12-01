@@ -2,6 +2,8 @@ import streamlit as st
 from dotenv import load_dotenv
 import os
 import openai
+import datetime
+import json
 
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -76,8 +78,19 @@ with st.sidebar:
 
 if "simplest_chat_messages" not in st.session_state:
     st.session_state["simplest_chat_messages"] = [
+        # TODO: able to set system initial prompt (If reset prompt then clear history)
         {"role": "assistant", "content": "How can I help you?", "metadata": {}}
     ]
+
+
+# TODO: maybe summarize content for the file name
+st.download_button(
+    "Download current chat history",
+    json.dumps(st.session_state.simplest_chat_messages, indent=4, ensure_ascii=False),
+    f"history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json",
+    mime="text/plain",
+    disabled=not st.session_state.simplest_chat_messages,
+)
 
 # Render history messages
 for msg in st.session_state.simplest_chat_messages:
