@@ -81,11 +81,22 @@ if "simplest_chat_messages" not in st.session_state:
 
 # Render history messages
 for msg in st.session_state.simplest_chat_messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-    if show_metadata:
-        metadata = msg["metadata"]
-        if "finish_reason" in metadata:
-            st.caption(f"Finish reason: {metadata['finish_reason']}")
+    role = msg["role"]
+    if msg["role"] == "error":
+        role = "assistant"
+    with st.chat_message(role):
+        if msg["role"] != "error":
+            st.write(msg["content"])
+        else:
+            st.error(msg["content"])
+
+        if show_metadata:
+            metadata = msg["metadata"]
+            if "finish_reason" in metadata:
+                st.caption(f"Finish reason: {metadata['finish_reason']}")
+
+            if "error_reason" in metadata:
+                st.caption(f"Error reason: {metadata['error_reason']}")
 
 
 # https://streamlit.io/generative-ai
@@ -116,52 +127,107 @@ if prompt := st.chat_input():
     st.chat_message("user").write(prompt)
 
     if not do_streaming:
-        response = client.chat.completions.create(
-            model=st.session_state.model,
-            # Chat history
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.simplest_chat_messages
-            ],
-            temperature=st.session_state.temperature,
-            stream=False,
-        )
-        msg = response.choices[0].message
-        st.session_state.simplest_chat_messages.append(
-            {"role": "assistant", "content": msg.content, "metadata": {}}
-        )
-        st.chat_message("assistant").write(msg.content)
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            try:
+                response = client.chat.completions.create(
+                    model=st.session_state.model,
+                    # Chat history
+                    # TODO: don't send user message cause error
+                    messages=[
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.simplest_chat_messages
+                        if m["role"] in {"user", "assistant"}
+                    ],
+                    temperature=st.session_state.temperature,
+                    stream=False,
+                )
+                msg = response.choices[0].message
+                st.session_state.simplest_chat_messages.append(
+                    {"role": "assistant", "content": msg.content, "metadata": {}}
+                )
+                message_placeholder.write(msg.content)
+
+            except openai.BadRequestError as e:
+                error = e.response.json()
+                error_message = error["error"]["message"]
+                error_reason = {}
+                for reason, result in error["error"]["innererror"][
+                    "content_filter_result"
+                ].items():
+                    if result["filtered"]:
+                        error_reason[reason] = result["severity"]
+
+                message_placeholder.error(error_message)
+
+                st.session_state.simplest_chat_messages.append(
+                    {
+                        "role": "error",
+                        "content": error_message,
+                        "metadata": {"error_reason": error_reason},
+                    }
+                )
+                if show_metadata:
+                    st.caption(f"Error reason: {error_reason}")
+
     else:
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
-            full_response = ""
-            for response in client.chat.completions.create(
-                model=st.session_state.model,
-                # NOTE: this can prevent from additional messages
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.simplest_chat_messages
-                ],
-                temperature=st.session_state.temperature,
-                stream=True,
-            ):
-                full_response += (
-                    # NOTE: response.choices[0].delta.content can be None (at the finish line)
-                    response.choices[0].delta.content or ""
-                    if response.choices
-                    else ""
-                )
-                message_placeholder.markdown(full_response + "▌")
+            try:
+                full_response = ""
+                for response in client.chat.completions.create(
+                    model=st.session_state.model,
+                    # NOTE: this can prevent from additional messages
+                    # TODO: don't send user message cause error
+                    messages=[
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state.simplest_chat_messages
+                        if m["role"] in {"user", "assistant"}
+                    ],
+                    temperature=st.session_state.temperature,
+                    stream=True,
+                ):
+                    full_response += (
+                        # NOTE: response.choices[0].delta.content can be None (at the finish line)
+                        response.choices[0].delta.content or ""
+                        if response.choices
+                        else ""
+                    )
+                    message_placeholder.markdown(full_response + "▌")
+                message_placeholder.markdown(full_response)
 
-            message_placeholder.markdown(full_response)
-        st.session_state.simplest_chat_messages.append(
-            {
-                "role": "assistant",
-                "content": full_response,
-                "metadata": {"finish_reason": response.choices[0].finish_reason},
-            }
-        )
-        if show_metadata:
-            st.caption(
-                f"Finish reason: {st.session_state.simplest_chat_messages[-1]['metadata']['finish_reason']}"
-            )
+                st.session_state.simplest_chat_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": full_response,
+                        "metadata": {
+                            "finish_reason": response.choices[0].finish_reason
+                        },
+                    }
+                )
+                if show_metadata:
+                    st.caption(
+                        f"Finish reason: {st.session_state.simplest_chat_messages[-1]['metadata']['finish_reason']}"
+                    )
+
+            except openai.BadRequestError as e:
+                error = e.response.json()
+                error_message = error["error"]["message"]
+                error_reason = {}
+                for reason, result in error["error"]["innererror"][
+                    "content_filter_result"
+                ].items():
+                    if result["filtered"]:
+                        error_reason[reason] = result["severity"]
+
+                message_placeholder.error(error_message)
+
+                st.session_state.simplest_chat_messages.append(
+                    {
+                        "role": "error",
+                        "content": error_message,
+                        "metadata": {"error_reason": error_reason},
+                    }
+                )
+                if show_metadata:
+                    st.caption(f"Error reason: {error_reason}")

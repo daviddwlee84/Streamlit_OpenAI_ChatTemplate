@@ -31,6 +31,9 @@ Functionality
   - [X] Temperature
   - [ ] TopN
   - [ ] ...
+- [ ] Download or preserve/resume chat history
+- [ ] Clear chat history for fresh new round
+- [X] Error handling
 
 Demonstration
 
@@ -62,3 +65,6 @@ Deploy to Streamlit Community Cloud
 ### OpenAI
 
 - [openai-cookbook/examples/How_to_stream_completions.ipynb at main · openai/openai-cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb)
+
+- Error response format
+  - [response_format error · Issue #887 · openai/openai-python](https://github.com/openai/openai-python/issues/887)
