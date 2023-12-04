@@ -8,3 +8,5 @@ python-dotenv
 openai
 langchain
 langchain-experimental
+
+tiktoken
