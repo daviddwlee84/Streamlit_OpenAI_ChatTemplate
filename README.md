@@ -67,9 +67,17 @@ Deploy to Streamlit Community Cloud
 - [Secrets management - Streamlit Docs](https://docs.streamlit.io/streamlit-community-cloud/deploy-your-app/secrets-management)
   - Copy `.env` settings to the Streamlit App Settings > Secrets
 
-### OpenAI
+### OpenAI & LangChain
 
-- [openai-cookbook/examples/How_to_stream_completions.ipynb at main · openai/openai-cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb)
-
+- [openai/openai-python: The official Python library for the OpenAI API](https://github.com/openai/openai-python)
+- [Chat models | 🦜️🔗 Langchain](https://python.langchain.com/docs/modules/model_io/chat/)
+- Streaming
+  - [openai-cookbook/examples/How_to_stream_completions.ipynb at main · openai/openai-cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/How_to_stream_completions.ipynb)
+  - [Langchain/Openai Streaming 101 in Python | by Esther is a confused human being | LLM Projects & Philosophy on How to Build Fast | Medium](https://medium.com/llm-projects/langchain-openai-streaming-101-in-python-edd60e84c9ca)
+    - Concept: Event-Driven API
+    - [Custom Response - HTML, Stream, File, others - FastAPI](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse)
+    - [Streaming | 🦜️🔗 Langchain](https://python.langchain.com/docs/modules/model_io/chat/streaming)
+      - [Chat models (streaming availability) | 🦜️🔗 Langchain](https://python.langchain.com/docs/integrations/chat/)
+    - [ajndkr/lanarky: The web framework for building LLM microservices](https://github.com/ajndkr/lanarky) (deprecated: [fastapi-async-langchain · PyPI](https://pypi.org/project/fastapi-async-langchain/))
 - Error response format
   - [response_format error · Issue #887 · openai/openai-python](https://github.com/openai/openai-python/issues/887)
