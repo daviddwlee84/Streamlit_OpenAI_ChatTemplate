@@ -11,10 +11,10 @@ curr_dir = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(curr_dir, "../.env"))
 
 st.set_page_config(
-    page_title="Simplest Chat",
+    page_title="Simplest Chat (OpenAI)",
 )
 
-st.title("Simplest Chat")
+st.title("Simplest Chat (OpenAI)")
 
 
 with st.expander("Settings"):
@@ -64,6 +64,7 @@ for msg in st.session_state.simplest_chat_messages:
 # https://streamlit.io/generative-ai
 # TODO: make response streaming https://docs.streamlit.io/knowledge-base/tutorials/build-conversational-apps#build-a-simple-chatbot-gui-with-streaming
 if prompt := st.chat_input():
+    # TODO: maybe unify a ModelCreator for `client` creation
     if openai_selection == "OpenAI":
         if not st.session_state.openai_api_key:
             st.warning("🥸 Please add your OpenAI API key to continue.")
