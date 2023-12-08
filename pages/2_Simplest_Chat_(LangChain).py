@@ -22,7 +22,7 @@ st.set_page_config(
 st.title("Simplest Chat (LangChain)")
 
 with st.expander("Settings"):
-    do_streaming = st.checkbox("Streaming output", False)
+    do_streaming = st.checkbox("Streaming output", True)
     show_metadata = st.checkbox("Show metadata", True)
 
 with st.sidebar:
@@ -136,7 +136,42 @@ if prompt := st.chat_input():
                     st.caption(f"Error reason: {error_reason}")
 
     else:
-        raise NotImplementedError()
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            try:
+                full_response = ""
+                for chunk in client.stream(
+                    [
+                        msg
+                        for msg in st.session_state.simplest_langchain_chat_messages
+                        if msg.type != "error"
+                    ]
+                ):
+                    full_response += chunk.content
+                    message_placeholder.markdown(full_response + "▌")
+                message_placeholder.markdown(full_response)
+
+                st.session_state.simplest_langchain_chat_messages.append(
+                    AIMessage(content=full_response)
+                )
+                st.session_state.simplest_langchain_chat_metadata.append({})
+
+            except openai.BadRequestError as e:
+                (
+                    error_message,
+                    error_reason,
+                ) = utils.extract_error_from_openai_BadRequestError(e)
+
+                message_placeholder.error(error_message)
+
+                st.session_state.simplest_langchain_chat_messages.append(
+                    utils.ErrorMessage(content=error_message)
+                )
+                st.session_state.simplest_langchain_chat_metadata.append(
+                    {"error_reason": error_reason}
+                )
+                if show_metadata:
+                    st.caption(f"Error reason: {error_reason}")
 
 # TODO: maybe summarize content for the file name
 download_button.download_button(
