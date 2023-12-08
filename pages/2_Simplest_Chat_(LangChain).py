@@ -1,4 +1,4 @@
-from typing import List
+from typing import Literal
 import streamlit as st
 from dotenv import load_dotenv
 import os
@@ -7,6 +7,7 @@ import json
 import utils
 from langchain.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
+import openai
 
 # https://github.com/pinecone-io/examples/blob/master/learn/generation/langchain/handbook/04-langchain-chat.ipynb
 
@@ -20,7 +21,6 @@ st.set_page_config(
 
 st.title("Simplest Chat (LangChain)")
 
-
 with st.expander("Settings"):
     do_streaming = st.checkbox("Streaming output", False)
     show_metadata = st.checkbox("Show metadata", True)
@@ -30,14 +30,6 @@ with st.sidebar:
 
 
 if "simplest_langchain_chat_messages" not in st.session_state:
-    # st.session_state["simplest_langchain_chat_messages"] = [
-    #     # TODO: able to set system initial prompt (If reset prompt then clear history)
-    #     {
-    #         "role": "assistant",
-    #         "content": SystemMessage(content="How can I help you?"),
-    #         "metadata": {},
-    #     }
-    # ]
     st.session_state["simplest_langchain_chat_messages"] = [
         # TODO: able to set system initial prompt (If reset prompt then clear history)
         SystemMessage(content="How can I help you?"),
@@ -48,30 +40,14 @@ if "simplest_langchain_chat_messages" not in st.session_state:
     ]
 
 
-# def _get_langchain_messages(chat_history: List[dict]) -> List[BaseMessage]:
-#     return [message["content"] for message in chat_history]
+download_button = st.empty()
 
-openai_message_history = utils.convert_langchain_to_openai_message_history(
-    st.session_state.simplest_langchain_chat_messages,
-    st.session_state.simplest_langchain_chat_metadata,
-)
-
-# TODO: maybe summarize content for the file name
-st.download_button(
-    "Download current chat history",
-    # TypeError: Object of type SystemMessage is not JSON serializable
-    json.dumps(
-        openai_message_history,
-        indent=4,
-        ensure_ascii=False,
-    ),
-    f"history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json",
-    mime="text/plain",
-    disabled=not openai_message_history,
-)
 
 # Render history messages
-for msg in openai_message_history:
+for msg in utils.convert_langchain_to_openai_message_history(
+    st.session_state.simplest_langchain_chat_messages,
+    st.session_state.simplest_langchain_chat_metadata,
+):
     role = msg["role"]
     if msg["role"] == "error":
         role = "assistant"
@@ -129,12 +105,52 @@ if prompt := st.chat_input():
             message_placeholder = st.empty()
             # TODO: try except error
             # TODO: add metadata
-            msg = client(st.session_state.simplest_langchain_chat_messages)
-            st.session_state.simplest_langchain_chat_messages.append(
-                AIMessage(content=msg.content)
-            )
-            st.session_state.simplest_langchain_chat_metadata.append({})
+            try:
+                msg = client(
+                    [
+                        msg
+                        for msg in st.session_state.simplest_langchain_chat_messages
+                        if msg.type != "error"
+                    ]
+                )
+                st.session_state.simplest_langchain_chat_messages.append(
+                    AIMessage(content=msg.content)
+                )
+                st.session_state.simplest_langchain_chat_metadata.append({})
+                message_placeholder.write(msg.content)
+            except openai.BadRequestError as e:
+                (
+                    error_message,
+                    error_reason,
+                ) = utils.extract_error_from_openai_BadRequestError(e)
 
-            message_placeholder.write(msg.content)
+                message_placeholder.error(error_message)
+
+                st.session_state.simplest_langchain_chat_messages.append(
+                    utils.ErrorMessage(content=error_message)
+                )
+                st.session_state.simplest_langchain_chat_metadata.append(
+                    {"error_reason": error_reason}
+                )
+                if show_metadata:
+                    st.caption(f"Error reason: {error_reason}")
+
     else:
         raise NotImplementedError()
+
+# TODO: maybe summarize content for the file name
+download_button.download_button(
+    "Download current chat history",
+    # TypeError: Object of type SystemMessage is not JSON serializable
+    json.dumps(
+        utils.convert_langchain_to_openai_message_history(
+            st.session_state.simplest_langchain_chat_messages,
+            st.session_state.simplest_langchain_chat_metadata,
+        ),
+        indent=4,
+        ensure_ascii=False,
+    ),
+    f"history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json",
+    mime="text/plain",
+    disabled=not st.session_state.simplest_langchain_chat_messages,
+)

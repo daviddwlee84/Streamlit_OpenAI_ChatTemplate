@@ -1,8 +1,9 @@
 import streamlit as st
-from typing import Literal, List, Dict
+from typing import Literal, List, Dict, Tuple
 import os
 import tiktoken
 from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
+import openai
 
 
 def generate_api_and_language_model_selection() -> Literal["OpenAI", "Azure OpenAI"]:
@@ -116,8 +117,18 @@ def num_tokens_from_messages(messages: str, model: str = "gpt-3.5-turbo-0613") -
     return num_tokens
 
 
+class ErrorMessage(BaseMessage):
+    """A Message for priming AI behavior, usually passed in as the first of a sequence
+    of input messages.
+    """
+
+    type: Literal["error"] = "error"
+
+
 def convert_langchain_to_openai_message_history(
-    langchain_chat_history: List[BaseMessage], metadata: List[dict] = []
+    langchain_chat_history: List[BaseMessage],
+    metadata: List[dict] = [],
+    include_error: bool = True,
 ) -> List[Dict[str, str]]:
     openai_chat_history = []
 
@@ -126,22 +137,45 @@ def convert_langchain_to_openai_message_history(
     else:
         metadata = [None] * len(langchain_chat_history)
 
-    for item, meta in zip(langchain_chat_history, metadata):
-        if isinstance(item, HumanMessage):
+    for msg, meta in zip(langchain_chat_history, metadata):
+        if msg.type == "human":
             if meta is None:
-                openai_chat_history.append({"role": "user", "content": item.content})
+                openai_chat_history.append({"role": "user", "content": msg.content})
             else:
                 openai_chat_history.append(
-                    {"role": "user", "content": item.content, "metadata": meta}
+                    {"role": "user", "content": msg.content, "metadata": meta}
                 )
-        elif isinstance(item, SystemMessage) or isinstance(item, AIMessage):
+        elif msg.type in {"system", "ai"}:
             if meta is None:
                 openai_chat_history.append(
-                    {"role": "assistant", "content": item.content}
+                    {"role": "assistant", "content": msg.content}
                 )
             else:
                 openai_chat_history.append(
-                    {"role": "assistant", "content": item.content, "metadata": meta}
+                    {"role": "assistant", "content": msg.content, "metadata": meta}
                 )
+        elif msg.type == "error" and include_error:
+            if meta is None:
+                openai_chat_history.append(
+                    {"role": "error", "content": msg.content}
+                )
+            else:
+                openai_chat_history.append(
+                    {"role": "error", "content": msg.content, "metadata": meta}
+                )
+        else:
+            print('Found unknown message', msg)
 
     return openai_chat_history
+
+
+def extract_error_from_openai_BadRequestError(
+    error: openai.BadRequestError,
+) -> Tuple[str, dict]:
+    error = error.response.json()
+    error_message = error["error"]["message"]
+    error_reason = {}
+    for reason, result in error["error"]["innererror"]["content_filter_result"].items():
+        if result["filtered"]:
+            error_reason[reason] = result["severity"]
+    return error_message, error_reason
