@@ -32,14 +32,7 @@ if "simplest_chat_messages" not in st.session_state:
     ]
 
 
-# TODO: maybe summarize content for the file name
-st.download_button(
-    "Download current chat history",
-    json.dumps(st.session_state.simplest_chat_messages, indent=4, ensure_ascii=False),
-    f"history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json",
-    mime="text/plain",
-    disabled=not st.session_state.simplest_chat_messages,
-)
+download_button = st.empty()
 
 # Render history messages
 for msg in st.session_state.simplest_chat_messages:
@@ -174,14 +167,10 @@ if prompt := st.chat_input():
                     )
 
             except openai.BadRequestError as e:
-                error = e.response.json()
-                error_message = error["error"]["message"]
-                error_reason = {}
-                for reason, result in error["error"]["innererror"][
-                    "content_filter_result"
-                ].items():
-                    if result["filtered"]:
-                        error_reason[reason] = result["severity"]
+                (
+                    error_message,
+                    error_reason,
+                ) = utils.extract_error_from_openai_BadRequestError(e)
 
                 message_placeholder.error(error_message)
 
@@ -194,3 +183,12 @@ if prompt := st.chat_input():
                 )
                 if show_metadata:
                     st.caption(f"Error reason: {error_reason}")
+
+# TODO: maybe summarize content for the file name
+download_button.download_button(
+    "Download current chat history",
+    json.dumps(st.session_state.simplest_chat_messages, indent=4, ensure_ascii=False),
+    f"history_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json",
+    mime="text/plain",
+    disabled=not st.session_state.simplest_chat_messages,
+)
