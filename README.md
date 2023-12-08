@@ -76,8 +76,9 @@ Deploy to Streamlit Community Cloud
   - [Langchain/Openai Streaming 101 in Python | by Esther is a confused human being | LLM Projects & Philosophy on How to Build Fast | Medium](https://medium.com/llm-projects/langchain-openai-streaming-101-in-python-edd60e84c9ca)
     - Concept: Event-Driven API
     - [Custom Response - HTML, Stream, File, others - FastAPI](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse)
-    - [Streaming | 🦜️🔗 Langchain](https://python.langchain.com/docs/modules/model_io/chat/streaming)
+    - [**Streaming | 🦜️🔗 Langchain**](https://python.langchain.com/docs/modules/model_io/chat/streaming)
       - [Chat models (streaming availability) | 🦜️🔗 Langchain](https://python.langchain.com/docs/integrations/chat/)
+    - [**examples/learn/generation/langchain/handbook/09-langchain-streaming/09-langchain-streaming.ipynb at master · pinecone-io/examples**](https://github.com/pinecone-io/examples/blob/master/learn/generation/langchain/handbook/09-langchain-streaming/09-langchain-streaming.ipynb)
     - [ajndkr/lanarky: The web framework for building LLM microservices](https://github.com/ajndkr/lanarky) (deprecated: [fastapi-async-langchain · PyPI](https://pypi.org/project/fastapi-async-langchain/))
 - Error response format
   - [response_format error · Issue #887 · openai/openai-python](https://github.com/openai/openai-python/issues/887)

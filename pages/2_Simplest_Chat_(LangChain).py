@@ -65,8 +65,6 @@ for msg in utils.convert_langchain_to_openai_message_history(
             if "error_reason" in metadata:
                 st.caption(f"Error reason: {metadata['error_reason']}")
 
-# https://streamlit.io/generative-ai
-# TODO: make response streaming https://docs.streamlit.io/knowledge-base/tutorials/build-conversational-apps#build-a-simple-chatbot-gui-with-streaming
 if prompt := st.chat_input():
     # TODO: maybe unify a ModelCreator for `client` creation
     if openai_selection == "OpenAI":
