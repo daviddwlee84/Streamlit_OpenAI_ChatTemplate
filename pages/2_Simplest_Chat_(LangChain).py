@@ -24,15 +24,18 @@ st.title("Simplest Chat (LangChain)")
 with st.expander("Settings"):
     do_streaming = st.checkbox("Streaming output", True)
     show_metadata = st.checkbox("Show metadata", True)
+    initial_system_message = st.text_area("System Message (modify this will clear history)", "How can I help you?")
 
 with st.sidebar:
     openai_selection = utils.generate_api_and_language_model_selection()
 
 
-if "simplest_langchain_chat_messages" not in st.session_state:
+if (
+    "simplest_langchain_chat_messages" not in st.session_state
+    or st.session_state.simplest_langchain_chat_messages
+)[0].content != initial_system_message:
     st.session_state["simplest_langchain_chat_messages"] = [
-        # TODO: able to set system initial prompt (If reset prompt then clear history)
-        SystemMessage(content="How can I help you?"),
+        SystemMessage(content=initial_system_message),
     ]
     st.session_state["simplest_langchain_chat_metadata"] = [
         # TODO: cost of system message
