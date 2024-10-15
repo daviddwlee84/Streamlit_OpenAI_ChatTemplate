@@ -4,6 +4,7 @@ import os
 import tiktoken
 from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
 import openai
+from langchain.callbacks import get_openai_callback
 
 
 def generate_api_and_language_model_selection() -> Literal["OpenAI", "Azure OpenAI"]:
@@ -117,6 +118,14 @@ def num_tokens_from_messages(messages: str, model: str = "gpt-3.5-turbo-0613") -
     return num_tokens
 
 
+def count_tokens(chain, query):
+    with get_openai_callback() as cb:
+        result = chain.run(query)
+        print(f"Spent a total of {cb.total_tokens} tokens")
+
+    return result
+
+
 class ErrorMessage(BaseMessage):
     """A Message for priming AI behavior, usually passed in as the first of a sequence
     of input messages.
@@ -156,15 +165,13 @@ def convert_langchain_to_openai_message_history(
                 )
         elif msg.type == "error" and include_error:
             if meta is None:
-                openai_chat_history.append(
-                    {"role": "error", "content": msg.content}
-                )
+                openai_chat_history.append({"role": "error", "content": msg.content})
             else:
                 openai_chat_history.append(
                     {"role": "error", "content": msg.content, "metadata": meta}
                 )
         else:
-            print('Found unknown message', msg)
+            print("Found unknown message", msg)
 
     return openai_chat_history
 

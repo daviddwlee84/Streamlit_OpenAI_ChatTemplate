@@ -10,3 +10,6 @@ langchain
 langchain-experimental
 
 tiktoken
+
+# litellm
+# open-interpereter

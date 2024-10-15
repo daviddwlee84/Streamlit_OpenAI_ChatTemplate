@@ -45,6 +45,15 @@ Demonstration
 - [ ] Chat with memory (different memory methods)
 - [ ] Chain-of-thought and intermediate result visualization
 - [ ] Agents selection
+- [ ] Retrieval Augmentation
+  - [LlamaIndex - Data Framework for LLM Applications](https://www.llamaindex.ai/)
+  - [run-llama/llama_index: LlamaIndex (formerly GPT Index) is a data framework for your LLM applications](https://github.com/run-llama/llama_index)
+
+Integration
+
+- [ ] Try moving from Streamlit to [Chainlit](https://chainlit.io/)
+  - [Overview - Chainlit](https://docs.chainlit.io/get-started/overview)
+  - [Chainlit/chainlit: Build Python LLM apps in minutes ⚡️](https://github.com/Chainlit/chainlit)
 
 ## Resources
 
@@ -82,3 +91,10 @@ Deploy to Streamlit Community Cloud
     - [ajndkr/lanarky: The web framework for building LLM microservices](https://github.com/ajndkr/lanarky) (deprecated: [fastapi-async-langchain · PyPI](https://pypi.org/project/fastapi-async-langchain/))
 - Error response format
   - [response_format error · Issue #887 · openai/openai-python](https://github.com/openai/openai-python/issues/887)
+
+### Others
+
+- [BerriAI/litellm: Call all LLM APIs using the OpenAI format. Use Bedrock, Azure, OpenAI, Cohere, Anthropic, Ollama, Sagemaker, HuggingFace, Replicate (100+ LLMs)](https://github.com/BerriAI/litellm)
+  - [LiteLLM - Getting Started | liteLLM](https://docs.litellm.ai/docs/)
+  - [Providers | liteLLM](https://docs.litellm.ai/docs/providers/)
+- [KillianLucas/open-interpreter: A natural language interface for computers](https://github.com/KillianLucas/open-interpreter?tab=readme-ov-file )
