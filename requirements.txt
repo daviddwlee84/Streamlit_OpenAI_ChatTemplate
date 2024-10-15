@@ -13,3 +13,6 @@ tiktoken
 
 # litellm
 # open-interpereter
+
+# Search
+googlesearch-python
