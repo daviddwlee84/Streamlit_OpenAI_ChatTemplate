@@ -24,7 +24,6 @@ st.title("RAG: Retrieval Augmented Generation (LightRAG)")
 
 
 with st.expander("Settings"):
-    show_metadata = st.checkbox("Show metadata", False, disabled=True, help="TBD")
     working_dir_name = st.text_input(
         "LightRAG working directory name",
         "Temp",
@@ -126,6 +125,8 @@ if f"lightrag_chat_history_{working_dir_name}" not in st.session_state:
 
 @st.fragment
 def chat():
+    show_metadata = st.checkbox("Show metadata (parameters)", True)
+
     download_button = st.empty()
 
     # Render history messages
@@ -135,17 +136,18 @@ def chat():
             role = "assistant"
         with st.chat_message(role):
             if msg["role"] != "error":
-                st.write(msg["content"])
+                st.markdown(msg["content"])
             else:
                 st.error(msg["content"])
 
             if show_metadata:
                 metadata = msg["metadata"]
-                if "finish_reason" in metadata:
-                    st.caption(f"Finish reason: {metadata['finish_reason']}")
-
-                if "error_reason" in metadata:
-                    st.caption(f"Error reason: {metadata['error_reason']}")
+                # if metadata:
+                #     st.json(metadata, expanded=False)
+                if "mode" in metadata:
+                    st.caption(f"Query Mode: {metadata['mode']}")
+                if "response_type" in metadata:
+                    st.caption(f"Response Type: {metadata['response_type']}")
 
     query_mode = st.selectbox(
         "Query Mode", ["naive", "local", "global", "hybrid"], index=3
@@ -157,6 +159,8 @@ def chat():
     )
     with st.expander("Other Query Parameters"):
         params = {
+            "mode": query_mode,
+            "response_type": response_type,
             "only_need_context": st.checkbox(
                 "Only Need Context",
                 False,
@@ -177,23 +181,21 @@ def chat():
     if prompt := st.chat_input():
         # TODO: able to show LightRAG intermediate metadata
         st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
-            {"role": "user", "content": prompt, "metadata": {}}
+            {"role": "user", "content": prompt, "metadata": params}
         )
-        st.chat_message("user").write(prompt)
+        st.chat_message("user").markdown(prompt)
 
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             with st.spinner("Thinking..."):
                 response = rag.query(
                     prompt,
-                    param=QueryParam(
-                        mode=query_mode, response_type=response_type, **params
-                    ),
+                    param=QueryParam(**params),
                 )
             st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
                 {"role": "assistant", "content": response, "metadata": {}}
             )
-            message_placeholder.write(response)
+            message_placeholder.markdown(response)
 
     # TODO: maybe summarize content for the file name
     download_button.download_button(
