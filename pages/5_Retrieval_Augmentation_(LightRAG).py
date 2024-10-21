@@ -45,7 +45,7 @@ with st.sidebar:
     )
     mode_type = st.selectbox("Model", ["GPT4o-mini", "GPT4o"])
 
-if not st.session_state.openai_api_key or not os.getenv("OPENAI_API_KEY"):
+if not st.session_state.openai_api_key:
     st.warning("🥸 Please add your OpenAI API key to continue.")
     st.stop()
 
@@ -148,6 +148,21 @@ def chat():
         "Multiple Paragraphs",
         help="Hint for LLM to reply in which format. Author's default is `Multiple Paragraphs`",
     )
+    with st.expander("Other Query Parameters"):
+        params = {
+            "only_need_context": st.checkbox("Only Need Context", False, help='This is for debugging purpose. Will return the *retrieved context* based on input query.'),
+            "top_k": st.number_input("Top K", value=60),
+            "max_token_for_text_unit": st.number_input(
+                "Max Token for Text Unit", value=4000
+            ),
+            "max_token_for_global_context": st.number_input(
+                "Max Token for Global Context", value=4000
+            ),
+            "max_token_for_local_context": st.number_input(
+                "Max Token for Local Context", value=4000
+            ),
+        }
+
     if prompt := st.chat_input():
         # TODO: able to show LightRAG intermediate metadata
         st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
@@ -160,7 +175,9 @@ def chat():
             with st.spinner("Thinking..."):
                 response = rag.query(
                     prompt,
-                    param=QueryParam(mode=query_mode, response_type=response_type),
+                    param=QueryParam(
+                        mode=query_mode, response_type=response_type, **params
+                    ),
                 )
             st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
                 {"role": "assistant", "content": response, "metadata": {}}
