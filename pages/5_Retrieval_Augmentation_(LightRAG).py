@@ -43,7 +43,6 @@ with st.sidebar:
         value=st.session_state.get("openai_api_key", os.getenv("OPENAI_API_KEY")),
         type="password",
     )
-    os.environ["OPENAI_API_KEY"] = st.session_state.openai_api_key
     mode_type = st.selectbox("Model", ["GPT4o-mini", "GPT4o"])
 
 if not st.session_state.openai_api_key or not os.getenv("OPENAI_API_KEY"):
@@ -58,20 +57,20 @@ rag = LightRAG(
         else lambda: f"./lightrag_cache_{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
     ),
     # KeyError: 'Could not automatically map gpt-4o-mini to a tokeniser. Please use `tiktoken.get_encoding` to explicitly get the tokeniser you expect.'
-    # You need to upgrade tiktoken
-    # llm_model_func=partial(
-    #     (
-    #         gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
-    #         if mode_type == "GPT4o-mini"
-    #         else gpt_4o_complete  # Optionally, use a stronger model
-    #     ),
-    #     api_key=st.session_state.openai_api_key,
-    # ),
-    llm_model_func=(
-        gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
-        if mode_type == "GPT4o-mini"
-        else gpt_4o_complete  # Optionally, use a stronger model
+    # You need to upgrade tiktoken if you have this error
+    llm_model_func=partial(
+        (
+            gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
+            if mode_type == "GPT4o-mini"
+            else gpt_4o_complete  # Optionally, use a stronger model
+        ),
+        api_key=st.session_state.openai_api_key,
     ),
+    # llm_model_func=(
+    #     gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
+    #     if mode_type == "GPT4o-mini"
+    #     else gpt_4o_complete  # Optionally, use a stronger model
+    # ),
 )
 
 st.session_state["lightrag_model"] = rag
@@ -144,6 +143,11 @@ def chat():
     query_mode = st.selectbox(
         "Query Mode", ["naive", "local", "global", "hybrid"], index=3
     )
+    response_type: str = st.text_input(
+        "Response Type",
+        "Multiple Paragraphs",
+        help="Hint for LLM to reply in which format. Author's default is `Multiple Paragraphs`",
+    )
     if prompt := st.chat_input():
         # TODO: able to show LightRAG intermediate metadata
         st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
@@ -154,7 +158,10 @@ def chat():
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             with st.spinner("Thinking..."):
-                response = rag.query(prompt, param=QueryParam(mode=query_mode))
+                response = rag.query(
+                    prompt,
+                    param=QueryParam(mode=query_mode, response_type=response_type),
+                )
             st.session_state[f"lightrag_chat_history_{working_dir_name}"].append(
                 {"role": "assistant", "content": response, "metadata": {}}
             )
