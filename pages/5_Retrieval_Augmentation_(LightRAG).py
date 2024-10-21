@@ -5,7 +5,8 @@ import datetime
 import json
 import requests
 from lightrag import LightRAG, QueryParam
-from lightrag.llm import gpt_4o_mini_complete, gpt_4o_complete
+from lightrag.llm import gpt_4o_mini_complete, gpt_4o_complete, openai_embedding
+from lightrag.utils import EmbeddingFunc
 from functools import partial
 import nest_asyncio
 
@@ -65,6 +66,12 @@ rag = LightRAG(
             else gpt_4o_complete  # Optionally, use a stronger model
         ),
         api_key=st.session_state.openai_api_key,
+    ),
+    # AttributeError: 'function' object has no attribute 'embedding_dim'
+    embedding_func=EmbeddingFunc(
+        func=partial(openai_embedding, api_key=st.session_state.openai_api_key),
+        embedding_dim=1536,
+        max_token_size=8192,
     ),
     # llm_model_func=(
     #     gpt_4o_mini_complete  # Use gpt_4o_mini_complete LLM model
@@ -150,7 +157,11 @@ def chat():
     )
     with st.expander("Other Query Parameters"):
         params = {
-            "only_need_context": st.checkbox("Only Need Context", False, help='This is for debugging purpose. Will return the *retrieved context* based on input query.'),
+            "only_need_context": st.checkbox(
+                "Only Need Context",
+                False,
+                help="This is for debugging purpose. Will return the *retrieved context* based on input query.",
+            ),
             "top_k": st.number_input("Top K", value=60),
             "max_token_for_text_unit": st.number_input(
                 "Max Token for Text Unit", value=4000
