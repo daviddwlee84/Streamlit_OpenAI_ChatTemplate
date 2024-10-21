@@ -16,3 +16,6 @@ tiktoken
 
 # Search
 googlesearch-python
+
+# LightRAG
+lightrag-hku

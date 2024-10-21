@@ -46,8 +46,9 @@ Demonstration
 - [ ] Chain-of-thought and intermediate result visualization
 - [ ] Agents selection
 - [ ] Retrieval Augmentation
-  - [LlamaIndex - Data Framework for LLM Applications](https://www.llamaindex.ai/)
-  - [run-llama/llama_index: LlamaIndex (formerly GPT Index) is a data framework for your LLM applications](https://github.com/run-llama/llama_index)
+  - [ ] [run-llama/llama_index: LlamaIndex (formerly GPT Index) is a data framework for your LLM applications](https://github.com/run-llama/llama_index)
+    - [LlamaIndex - Data Framework for LLM Applications](https://www.llamaindex.ai/)
+  - [X] [HKUDS/LightRAG: "LightRAG: Simple and Fast Retrieval-Augmented Generation"](https://github.com/HKUDS/LightRAG)
 
 Integration
 
