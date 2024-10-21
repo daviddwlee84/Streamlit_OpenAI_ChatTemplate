@@ -5,7 +5,11 @@ import os
 import datetime
 import json
 import utils
-from langchain.chat_models import ChatOpenAI, AzureChatOpenAI
+
+# C:\Users\david\AppData\Roaming\Python\Python311\site-packages\langchain\chat_models\__init__.py:31: LangChainDeprecationWarning: Importing chat models from langchain is deprecated. Importing from langchain will no longer be supported as of langchain==0.2.0. Please import from langchain-community instead:
+# `from langchain_community.chat_models import AzureChatOpenAI`.
+# To install langchain-community run `pip install -U langchain-community`.
+from langchain_community.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
 import openai
 
@@ -24,7 +28,9 @@ st.title("Simplest Chat (LangChain)")
 with st.expander("Settings"):
     do_streaming = st.checkbox("Streaming output", True)
     show_metadata = st.checkbox("Show metadata", True)
-    initial_system_message = st.text_area("System Message (modify this will clear history)", "How can I help you?")
+    initial_system_message = st.text_area(
+        "System Message (modify this will clear history)", "How can I help you?"
+    )
 
 with st.sidebar:
     openai_selection = utils.generate_api_and_language_model_selection()
