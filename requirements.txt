@@ -20,3 +20,4 @@ googlesearch-python
 
 # LightRAG
 lightrag-hku
+nest-asyncio
