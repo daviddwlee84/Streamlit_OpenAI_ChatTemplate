@@ -21,3 +21,8 @@ googlesearch-python
 # LightRAG
 lightrag-hku
 nest-asyncio
+
+# LangGraph
+langgraph
+langchain-openai
+duckduckgo-search

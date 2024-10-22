@@ -4,7 +4,14 @@ import os
 import tiktoken
 from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
 import openai
-from langchain.callbacks import get_openai_callback
+# from langchain.callbacks import get_openai_callback
+# C:\Users\david\Documents\Program\Streamlit_OpenAI_ChatTemplate\utils.py:7: LangChainDeprecationWarning: Importing get_openai_callback from C:\Users\david\AppData\Roaming\Python\Python311\site-packages\langchain\callbacks\__init__.py is deprecated. Please replace deprecated imports:
+# >> from C:\Users\david\AppData\Roaming\Python\Python311\site-packages\langchain\callbacks\__init__.py import get_openai_callback
+# with new imports of:
+# >> from langchain_community.callbacks.manager import get_openai_callback
+# You can use the langchain cli to **automatically** upgrade many imports. Please see documentation here <https://python.langchain.com/docs/versions/v0_2/>
+#   from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks.manager import get_openai_callback
 
 
 def generate_api_and_language_model_selection() -> Literal["OpenAI", "Azure OpenAI"]:
