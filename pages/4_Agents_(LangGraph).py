@@ -67,9 +67,15 @@ with st.expander("Settings"):
         help='If unchecked, we will only keep track of "visible" part of the message.',
     )
     show_all_messages = st.checkbox(
-        "Show all messages", False, help="Also show all intermediate tool calls and tool messages"
+        "Show all message types",
+        False,
+        help="Also show all intermediate tool calls and tool messages",
     )
-    do_streaming = st.checkbox("Streaming output", False)
+    do_streaming = st.checkbox(
+        "Streaming output",
+        True,
+        help="Currently, the graph streaming is stream by role instead of stream by token.",
+    )
     initial_system_message = st.text_area(
         "System Message (modify this will clear history)", "How can I help you?"
     )
@@ -220,7 +226,7 @@ if prompt := st.chat_input():
     current_msg_length = len(st.session_state.langgraph_agents_chat_history)
     st.chat_message("user").write(prompt)
 
-    if not do_streaming:
+    if not do_streaming or show_all_messages:
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             response = graph.invoke(
@@ -247,8 +253,41 @@ if prompt := st.chat_input():
             else:
                 message_placeholder.write(msg.content)
     else:
-        # graph.stream()
-        raise NotImplementedError()
+        # This is not what we expected
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            for event in graph.stream(
+                {"messages": st.session_state.langgraph_agents_chat_history},
+                config={"configurable": {"thread_id": "1"}},
+                stream_mode="values",
+            ):
+                msg = event["messages"][-1]
+                if isinstance(msg, HumanMessage):
+                    continue
+
+                if msg.type == "ai" and not msg.content:
+                    if not show_all_messages:
+                        continue
+                    st.text("tool_call")
+                    st.json(msg.tool_calls)
+                else:
+                    if show_all_messages:
+                        st.text("assistant")
+                        st.markdown(msg.content)
+                    else:
+                        message_placeholder.markdown(msg.content)
+
+                if msg.type == "tool" and show_all_messages:
+                    st.text("tool")
+                    st.json(msg.content)
+
+            if preserve_all_history:
+                st.session_state.langgraph_agents_chat_history = event["messages"]
+            else:
+                st.session_state.langgraph_agents_chat_history.append(
+                    msg["messages"][-1]
+                )
 
 # TODO: maybe summarize content for the file name
 download_button.download_button(
