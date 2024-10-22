@@ -36,7 +36,9 @@ st.set_page_config(
 
 st.title("Simplest Agent (LangGraph)")
 
-st.caption("This example contains DuckDuckGo tool + Human-in-the-loop. For more LangGraph details check their [website](https://langchain-ai.github.io/langgraph/tutorials/introduction/).")
+st.caption(
+    "This example contains DuckDuckGo tool + Human-in-the-loop. For more LangGraph details check their [website](https://langchain-ai.github.io/langgraph/tutorials/introduction/)."
+)
 
 
 class State(TypedDict):
@@ -59,6 +61,14 @@ with st.sidebar:
 
 
 with st.expander("Settings"):
+    preserve_all_history = st.checkbox(
+        "Preserve all history",
+        True,
+        help='If unchecked, we will only keep track of "visible" part of the message.',
+    )
+    show_all_messages = st.checkbox(
+        "Show all messages", False, help="Also show all intermediate tool calls and tool messages"
+    )
     do_streaming = st.checkbox("Streaming output", False)
     initial_system_message = st.text_area(
         "System Message (modify this will clear history)", "How can I help you?"
@@ -187,31 +197,55 @@ download_button = st.empty()
 
 # Render history messages
 for msg in utils.convert_langchain_to_openai_message_history(
-    st.session_state.langgraph_agents_chat_history,
+    st.session_state.langgraph_agents_chat_history, include_tool=show_all_messages
 ):
     role = msg["role"]
-    if msg["role"] == "error":
+    if not show_all_messages and role.startswith("tool"):
+        continue
+    if msg["role"] in ["error", "tool", "tool_call"]:
         role = "assistant"
     with st.chat_message(role):
-        if msg["role"] != "error":
-            st.write(msg["content"])
+        if show_all_messages:
+            if msg["role"] not in {"error", "user"}:
+                st.text(msg["role"])
+        if msg["role"] in {"user", "assistant", "tool"}:
+            st.markdown(msg["content"])
+        elif msg["role"] == "tool_call":
+            st.json(msg["content"])
         else:
             st.error(msg["content"])
 
 if prompt := st.chat_input():
     st.session_state.langgraph_agents_chat_history.append(HumanMessage(content=prompt))
+    current_msg_length = len(st.session_state.langgraph_agents_chat_history)
     st.chat_message("user").write(prompt)
 
     if not do_streaming:
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
-            msg: AIMessage = graph.invoke(
+            response = graph.invoke(
                 {"messages": st.session_state.langgraph_agents_chat_history},
                 config={"configurable": {"thread_id": "1"}},
                 stream_mode="values",
-            )["messages"][-1]
-            st.session_state.langgraph_agents_chat_history.append(msg)
-            message_placeholder.write(msg.content)
+            )
+            msg = response["messages"][-1]
+            if preserve_all_history:
+                st.session_state.langgraph_agents_chat_history = response["messages"]
+            else:
+                st.session_state.langgraph_agents_chat_history.append(
+                    msg["messages"][-1]
+                )
+            if show_all_messages:
+                for msg in response["messages"][current_msg_length:]:
+                    st.text(msg.type)
+                    if not msg.content:
+                        # should be tool call
+                        # st.json(msg.additional_kwargs)
+                        st.json(msg.tool_calls)
+                    else:
+                        st.write(msg.content)
+            else:
+                message_placeholder.write(msg.content)
     else:
         # graph.stream()
         raise NotImplementedError()

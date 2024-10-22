@@ -4,6 +4,7 @@ import os
 import tiktoken
 from langchain.schema import BaseMessage, SystemMessage, HumanMessage, AIMessage
 import openai
+
 # from langchain.callbacks import get_openai_callback
 # C:\Users\david\Documents\Program\Streamlit_OpenAI_ChatTemplate\utils.py:7: LangChainDeprecationWarning: Importing get_openai_callback from C:\Users\david\AppData\Roaming\Python\Python311\site-packages\langchain\callbacks\__init__.py is deprecated. Please replace deprecated imports:
 # >> from C:\Users\david\AppData\Roaming\Python\Python311\site-packages\langchain\callbacks\__init__.py import get_openai_callback
@@ -145,6 +146,7 @@ def convert_langchain_to_openai_message_history(
     langchain_chat_history: List[BaseMessage],
     metadata: List[dict] = [],
     include_error: bool = True,
+    include_tool: bool = True,
 ) -> List[Dict[str, str]]:
     openai_chat_history = []
 
@@ -161,7 +163,7 @@ def convert_langchain_to_openai_message_history(
                 openai_chat_history.append(
                     {"role": "user", "content": msg.content, "metadata": meta}
                 )
-        elif msg.type in {"system", "ai"}:
+        elif msg.type == "system":
             if meta is None:
                 openai_chat_history.append(
                     {"role": "assistant", "content": msg.content}
@@ -170,7 +172,38 @@ def convert_langchain_to_openai_message_history(
                 openai_chat_history.append(
                     {"role": "assistant", "content": msg.content, "metadata": meta}
                 )
-        elif msg.type == "error" and include_error:
+        elif msg.type == "ai":
+            content = msg.content
+            role = "assistant"
+            if not content:
+                content = msg.tool_calls
+                role = "tool_call"
+            if meta is None:
+                openai_chat_history.append({"role": role, "content": content})
+            else:
+                openai_chat_history.append(
+                    {"role": role, "content": content, "metadata": meta}
+                )
+        elif msg.type == "tool":
+            if not include_tool:
+                continue
+
+            if meta is None:
+                openai_chat_history.append(
+                    {"role": "tool", "content": msg.content, "is_tool": True}
+                )
+            else:
+                openai_chat_history.append(
+                    {
+                        "role": "tool",
+                        "content": msg.content,
+                        "metadata": meta,
+                        "is_tool": True,
+                    }
+                )
+        elif msg.type == "error":
+            if not include_error:
+                continue
             if meta is None:
                 openai_chat_history.append({"role": "error", "content": msg.content})
             else:
@@ -178,7 +211,7 @@ def convert_langchain_to_openai_message_history(
                     {"role": "error", "content": msg.content, "metadata": meta}
                 )
         else:
-            print("Found unknown message", msg)
+            print(f"Found unknown message type: {msg.type}", msg)
 
     return openai_chat_history
 
