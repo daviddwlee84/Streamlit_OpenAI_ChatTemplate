@@ -8,7 +8,7 @@ import utils
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
 
 from langchain_community.tools import DuckDuckGoSearchResults, DuckDuckGoSearchRun
-from langchain_core.messages import AIMessage, ToolMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, ToolMessage, HumanMessage, SystemMessage, AIMessageChunk
 
 # NOTE: you must use langchain-core >= 0.3 with Pydantic v2
 from pydantic import BaseModel
@@ -66,16 +66,25 @@ with st.expander("Settings"):
         True,
         help='If unchecked, we will only keep track of "visible" part of the message.',
     )
+    do_token_streaming = st.checkbox(
+        "Streaming token",
+        False,
+        help="When using streaming token mode, we don't support show all types of messages. (this is buggy...)",
+    )
+
     show_all_messages = st.checkbox(
         "Show all message types",
         False,
+        disabled=do_token_streaming,
         help="Also show all intermediate tool calls and tool messages",
     )
     do_streaming = st.checkbox(
-        "Streaming output",
-        True,
+        "Streaming message",
+        False,
+        disabled=do_token_streaming,
         help="Currently, the graph streaming is stream by role instead of stream by token.",
     )
+
     initial_system_message = st.text_area(
         "System Message (modify this will clear history)", "How can I help you?"
     )
@@ -226,68 +235,92 @@ if prompt := st.chat_input():
     current_msg_length = len(st.session_state.langgraph_agents_chat_history)
     st.chat_message("user").write(prompt)
 
-    if not do_streaming or show_all_messages:
-        with st.chat_message("assistant"):
-            message_placeholder = st.empty()
-            response = graph.invoke(
-                {"messages": st.session_state.langgraph_agents_chat_history},
-                config={"configurable": {"thread_id": "1"}},
-                stream_mode="values",
-            )
-            msg = response["messages"][-1]
-            if preserve_all_history:
-                st.session_state.langgraph_agents_chat_history = response["messages"]
-            else:
-                st.session_state.langgraph_agents_chat_history.append(
-                    msg["messages"][-1]
+    if not do_token_streaming:
+        if not do_streaming:
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                # BadRequestError: Error code: 400 - {'error': {'message': "An assistant message with 'tool_calls' must be followed by tool messages responding to each 'tool_call_id'. The following tool_call_ids did not have response messages: call_Gn41aivmIcO4X9CtAW1vl9bF", 'type': 'invalid_request_error', 'param': 'messages.[17].role', 'code': None}}
+                response = graph.invoke(
+                    {"messages": st.session_state.langgraph_agents_chat_history},
+                    config={"configurable": {"thread_id": "1"}},
+                    stream_mode="values",
                 )
-            if show_all_messages:
-                for msg in response["messages"][current_msg_length:]:
-                    st.text(msg.type)
-                    if not msg.content:
-                        # should be tool call
-                        # st.json(msg.additional_kwargs)
+                msg = response["messages"][-1]
+                if preserve_all_history:
+                    st.session_state.langgraph_agents_chat_history = response[
+                        "messages"
+                    ]
+                else:
+                    st.session_state.langgraph_agents_chat_history.append(
+                        msg["messages"][-1]
+                    )
+                if show_all_messages:
+                    for msg in response["messages"][current_msg_length:]:
+                        st.text(msg.type)
+                        if not msg.content:
+                            # should be tool call
+                            # st.json(msg.additional_kwargs)
+                            st.json(msg.tool_calls)
+                        else:
+                            st.write(msg.content)
+                else:
+                    message_placeholder.write(msg.content)
+        else:
+            # This is not what we expected
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                full_response = ""
+                for event in graph.stream(
+                    {"messages": st.session_state.langgraph_agents_chat_history},
+                    config={"configurable": {"thread_id": "1"}},
+                    stream_mode="values",
+                ):
+                    msg = event["messages"][-1]
+                    if isinstance(msg, HumanMessage):
+                        continue
+
+                    if msg.type == "ai" and not msg.content:
+                        if not show_all_messages:
+                            continue
+                        st.text("tool_call")
                         st.json(msg.tool_calls)
                     else:
-                        st.write(msg.content)
-            else:
-                message_placeholder.write(msg.content)
+                        if show_all_messages:
+                            st.text("assistant")
+                            st.markdown(msg.content)
+                        else:
+                            message_placeholder.markdown(msg.content)
+
+                    if msg.type == "tool" and show_all_messages:
+                        st.text("tool")
+                        st.json(msg.content)
+
+                if preserve_all_history:
+                    st.session_state.langgraph_agents_chat_history = event["messages"]
+                else:
+                    st.session_state.langgraph_agents_chat_history.append(
+                        msg["messages"][-1]
+                    )
     else:
-        # This is not what we expected
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
-            for event in graph.stream(
+            # https://github.com/langchain-ai/langgraph/blob/main/docs/docs/how-tos/streaming-tokens.ipynb
+            for msg, metadata in graph.stream(
                 {"messages": st.session_state.langgraph_agents_chat_history},
                 config={"configurable": {"thread_id": "1"}},
-                stream_mode="values",
+                stream_mode="messages",
             ):
-                msg = event["messages"][-1]
-                if isinstance(msg, HumanMessage):
+                if not isinstance(msg, AIMessageChunk):
                     continue
+                full_response += msg.content
+                message_placeholder.markdown(full_response + "▌")
+            message_placeholder.markdown(full_response)
 
-                if msg.type == "ai" and not msg.content:
-                    if not show_all_messages:
-                        continue
-                    st.text("tool_call")
-                    st.json(msg.tool_calls)
-                else:
-                    if show_all_messages:
-                        st.text("assistant")
-                        st.markdown(msg.content)
-                    else:
-                        message_placeholder.markdown(msg.content)
-
-                if msg.type == "tool" and show_all_messages:
-                    st.text("tool")
-                    st.json(msg.content)
-
-            if preserve_all_history:
-                st.session_state.langgraph_agents_chat_history = event["messages"]
-            else:
-                st.session_state.langgraph_agents_chat_history.append(
-                    msg["messages"][-1]
-                )
+            # TODO: figure out how to preserve entire chat history in this mode
+            st.session_state.langgraph_agents_chat_history.append(
+                AIMessage(content=full_response)
+            )
 
 # TODO: maybe summarize content for the file name
 download_button.download_button(
